@@ -1,30 +1,85 @@
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Server {
-    static Vector<ClientHandler> ar = new Vector<>();
-    static  int i = 0;
 
-    public static void main(String[] args) throws IOException {
-        ServerSocket ss = new ServerSocket(1234);
-        Socket s;
-        while (true){
-            s=ss.accept();
-            System.out.println("New client requested :" +s);
-            DataInputStream dis = new DataInputStream(s.getInputStream());
-            DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-            System.out.println("Creating a new handler for this client...");
-            ClientHandler mtch = new ClientHandler("client"+i, dis, dos, s);
-            Thread t = new Thread(mtch);
-            System.out.println("Adding this client to active client list");
-        ar.add(mtch);
-        t.start();
-        i++;
+    private ServerSocket socket;
+    private ConnectionListener  connectionListener;
+
+    // temp
+    private List<Client> clientList = new ArrayList<>();
+    // temp end
+
+    public Server(int port) {
+        try {
+            socket = new ServerSocket(port);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        connectionListener = new ConnectionListener(this);
+    }
+
+    public void start() throws IOException {
+
+        connectionListener.start();
+
+        // temp will move to a Thread later
+        BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
+        String input;
+        while (((input = stdIn.readLine()) != null) && connectionListener.isAlive()) {
+            if (input.equalsIgnoreCase("exit")) {
+                break;
+            } else {
+                for (int i = 0; i < input.length(); i++)
+                    System.out.print("\b");
+                System.out.println("Admin: " + input);
+                for (Client c : clientList) {
+                    c.send("Admin: " + input);
+                }
+            }
 
         }
+        stop();
+        // temp end
     }
+
+    public void stop() {
+
+        connectionListener.stop();
+        for (Client c : clientList) {
+            c.closeSession();
+        }
+
+        System.out.println("Server terminated!");
+    }
+
+    public synchronized void addConnection(Connection connection) {
+
+        Client c = new Client(connection, clientList);
+        clientList.add(c);
+        c.startSession();
+        System.out.println("Client connected");
+    }
+
+    public ServerSocket getSocket() {
+
+        return socket;
+    }
+
+    public static void main(String[] args) throws IOException {
+    int port;
+    if (args.length > 0)
+        port = Integer.parseInt(args[0]);
+    else
+        port = 4444;
+    Server s = new Server(port);
+    s.start();
+
+    }
+
 }

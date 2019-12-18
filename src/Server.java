@@ -1,85 +1,51 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.List;
+import java.net.Socket;
 
-public class Server {
+public class Server implements Runnable {
+    ServerSocket server;
+    Socket s;
+    DataOutputStream dos;
+    DataInputStream din;
+    BufferedReader br;
+    String usr;
+    Thread th;
 
-    private ServerSocket socket;
-    private ConnectionListener  connectionListener;
-
-    // temp
-    private List<Client> clientList = new ArrayList<>();
-    // temp end
-
-    public Server(int port) {
-        try {
-            socket = new ServerSocket(port);
-        } catch (IOException e) {
-            e.printStackTrace();
+    public Server() throws IOException {
+        server = new ServerSocket(3003);
+        s = server.accept();
+        dos = new DataOutputStream(s.getOutputStream());
+        din = new DataInputStream(s.getInputStream());
+        br = new BufferedReader(new InputStreamReader(System.in));
+        th = new Thread(this);
+        th.start();
+        while (true) {
+            System.out.println(din.readUTF());
         }
-
-        connectionListener = new ConnectionListener(this);
     }
 
-    public void start() throws IOException {
-
-        connectionListener.start();
-
-        // temp will move to a Thread later
-        BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-        String input;
-        while (((input = stdIn.readLine()) != null) && connectionListener.isAlive()) {
-            if (input.equalsIgnoreCase("exit")) {
-                break;
-            } else {
-                for (int i = 0; i < input.length(); i++)
-                System.out.print("\b");
-                System.out.println("Admin: " + input);
-                for (Client c : clientList) {
-                    c.send("Admin: " + input);
-                }
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                usr = br.readLine();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                dos.writeUTF(usr);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
 
         }
-        stop();
-        // temp end
     }
 
-    public void stop() {
+    public static void main(String[] args) {
+        try {
+            new Server();
+        } catch (Exception e) {
 
-        connectionListener.stop();
-        for (Client c : clientList) {
-            c.closeSession();
         }
-
-        System.out.println("Server terminated!");
     }
-
-    public synchronized void addConnection(Connection connection) {
-
-        Client c = new Client(connection, clientList);
-        clientList.add(c);
-        c.startSession();
-        System.out.println("Client connected");
-    }
-
-    public ServerSocket getSocket() {
-
-        return socket;
-    }
-
-    public static void main(String[] args) throws IOException {
-    int port;
-    if (args.length > 0) //ARGS ??????
-        port = Integer.parseInt(args[0]);
-    else
-        port = 4444;
-    Server s = new Server(port);
-    s.start();
-
-    }
-
 }

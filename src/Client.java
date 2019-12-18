@@ -1,75 +1,45 @@
-import java.util.List;
+import java.io.*;
+import java.net.Socket;
 
 public class Client implements Runnable {
 
-    public static final long IDLE_TIME = 10;
+    Socket s;
+    DataOutputStream dos;
+    DataInputStream din;
+    BufferedReader br;
+    String usr;
+    Thread th;
 
-    private Connection  connection;
-    private boolean     alive;
-    private Thread      t;
-
-    private List<Client> clientList;
-
-    public Client(Connection connection, List<Client> clientList) {
-        this.connection = connection;
-        this.clientList = clientList;
-        alive = false;
-    }
-
-    public synchronized void startSession() {
-
-        if (alive)
-            return;
-
-        alive = true;
-
-        t = new Thread(this);
-        t.start();
-
-    }
-
-    public synchronized void closeSession() {
-
-        if (!alive)
-            return;
-
-        alive = false;
-
-        try {
-            connection.close();
-            t.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    public Client() throws IOException {
+        s = new Socket("localhost",3003);
+        dos = new DataOutputStream(s.getOutputStream());
+        din = new DataInputStream(s.getInputStream());
+        br = new BufferedReader(new InputStreamReader(System.in));
+        th = new Thread(this);
+        th.start();
+        while (true) {
+            System.out.println(din.readUTF());
         }
     }
 
     @Override
     public void run() {
-
-        while (connection.isAlive()) {
-
-            String in = connection.read();
-            if (in != null) {
-                System.out.println(in);
-                for (Client c : clientList) {
-                    c.send(in);
-                }
-            } else {
-                try {
-                    Thread.sleep(IDLE_TIME);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+        while (true) {
+            try {
+                usr = br.readLine();
+                dos.writeUTF(usr);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
 
+
         }
-
     }
 
-    public void send(String msg) {
+    public static void main(String[] args) throws IOException {
+        try{
+            new Client();
 
-        connection.write(msg + "\n");
-        connection.flush();
+        }catch (Exception e){}
     }
-
 }

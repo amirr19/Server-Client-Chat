@@ -36,7 +36,7 @@ public class Server {
                 break;
             } else {
                 for (int i = 0; i < input.length(); i++)
-                    System.out.print("\b");
+                System.out.print("\b");
                 System.out.println("Admin: " + input);
                 for (Client c : clientList) {
                     c.send("Admin: " + input);
@@ -73,7 +73,7 @@ public class Server {
 
     public static void main(String[] args) throws IOException {
     int port;
-    if (args.length > 0)
+    if (args.length > 0) //ARGS ??????
         port = Integer.parseInt(args[0]);
     else
         port = 4444;
